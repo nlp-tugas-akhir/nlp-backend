@@ -13,7 +13,7 @@ class AdvancedCorrector:
         # SYSTEM INITIALIZATION
         print("--- System Initialization ---")
         
-        # MODEL LOADING
+        # MODEL LOADINGpem
         print("[1/3] Loading NER Model (cahya/bert-base-indonesian-NER)...")
         try:
             self.ner_pipeline = pipeline(
@@ -59,7 +59,12 @@ class AdvancedCorrector:
         return ["saya", "aku", "ku", "hamba", "kami", "kita", "kamu", "engkau", "kau", "anda", "kalian", "saudara", "dia", "ia", "beliau", "mereka", "nya", "ini", "itu", "sini", "situ", "sana", "apa", "siapa", "mana", "kapan", "mengapa", "kenapa", "bagaimana", "berapa", "di", "ke", "dari", "pada", "dalam", "atas", "bawah", "kepada", "daripada", "untuk", "bagi", "guna", "buat", "oleh", "dengan", "tentang", "mengenai", "terhadap", "soal", "sejak", "semenjak", "sampai", "hingga", "keluar", "masuk", "dan", "serta", "atau", "tetapi", "tapi", "namun", "melainkan", "sedangkan", "jika", "kalau", "jikalau", "asal", "bila", "manakala", "agar", "supaya", "biar", "sebab", "karena", "lantaran", "sehingga", "maka", "akibatnya", "ketika", "sewaktu", "tatkala", "selagi", "seraya", "sambil", "setelah", "sesudah", "sebelum", "sehabis", "selesai", "bahwa", "yakni", "yaitu", "adalah", "ialah", "merupakan", "biarpun", "meskipun", "walaupun", "sekalipun", "sungguhpun", "padahal", "kendatipun", "kah", "lah", "tah", "pun", "per", "yang", "tak", "tidak", "bukan", "tanpa", "tiada", "belum", "sudah", "telah", "akan", "sedang", "lagi", "pernah", "masih", "baru", "ada", "bisa", "dapat", "boleh", "harus", "mesti", "wajib", "perlu", "butuh", "mau", "ingin", "hendak", "bakal", "sangat", "amat", "terlalu", "paling", "cukup", "kurang", "lebih", "agak", "hanya", "cuma", "saja", "juga", "pun", "nanti", "kemarin", "besok", "lusa", "sekarang", "dahulu", "dulu", "tadi", "barusan", "tentu", "pasti", "yakin", "memang", "barangkali", "mungkin", "bahkan", "malah", "justru", "segera", "langsung", "lantas", "kemudian", "lalu", "akhirnya", "pak", "bapak", "bu", "ibu", "mas", "mbak", "kak", "kakak", "bang", "abang", "dik", "adik", "om", "tante"]
 
     # MORPHOLOGICAL GENERATION LOGIC
+    # --- PERBAIKAN LOGIKA MORFOLOGI ---
     def _apply_morphology(self, root):
+        """
+        Generate kata turunan dengan level imbuhan ganda.
+        Sekarang mendukung huruf B, F, V (Bangun -> Pembangunan).
+        """
         forms = set()
         forms.add(root)
 
@@ -69,33 +74,55 @@ class AdvancedCorrector:
 
         def get_nasal_root(prefix, r):
             if prefix in ['me', 'pe']:
+                # Aturan Peluluhan (KPST)
                 if first == 'k': return prefix + 'ng' + (r[1:] if is_vowel else r)
                 elif first == 'p': return prefix + 'm' + (r[1:] if is_vowel else r)
                 elif first == 's': return prefix + 'ny' + (r[1:] if is_vowel else r)
                 elif first == 't': return prefix + 'n' + (r[1:] if is_vowel else r)
-                elif first in 'lmnrwy': return prefix + r
+                
+                # Aturan B, F, V -> Mem/Pem (INI YANG DITAMBAHKAN)
+                # Contoh: Bangun -> Pembangun, Fokus -> Pemfokus
+                elif first in 'bfv': return prefix + 'm' + r
+                
+                # Aturan C, D, J, Z -> Men/Pen
+                # Contoh: Cuci -> Pencuci
                 elif first in 'cdjz': return prefix + 'n' + r
+                
+                # Aturan Vokal, G, H, Kh -> Meng/Peng
+                # Contoh: Ajar -> Pengajar, Huni -> Penghuni
                 elif first in 'gh' or (first=='k' and second=='h'): return prefix + 'ng' + r
                 elif first in 'aiueo': return prefix + 'ng' + r
+                
+                # Huruf L, M, N, R, W, Y -> Tetap (Me/Pe)
+                # Contoh: Larang -> Pelarang
+                elif first in 'lmnrwy': return prefix + r
+                
             return prefix + r
 
         def get_ber_ter_root(prefix, r):
+            # Aturan Ber/Ter/Per -> Be/Te/Pe jika huruf awal R
+            # Contoh: Racun -> Beracun (Bukan Berracun)
             if r.startswith('r'): return prefix[:-1] + r
+            # Contoh: Ajar -> Belajar (Pengecualian khusus, tapi kita generalisir dulu)
+            if r == 'ajar' and prefix == 'ber': return 'bel' + r 
             return prefix + r
 
-        # LEVEL 1: BASIC PREFIXES
+        # --- LEVEL 1: PREFIX DASAR ---
         level1_bases = set()
         level1_bases.add(root)
         
+        # Me- / Pe-
         base_me = get_nasal_root('me', root)
-        base_pe = get_nasal_root('pe', root)
-        level1_bases.add(base_me)
-        level1_bases.add(base_pe)
+        base_pe = get_nasal_root('pe', root) # Bangun -> Pembangun
+        level1_bases.add(base_me) 
+        level1_bases.add(base_pe) 
         
+        # Di- / Ke- / Se-
         level1_bases.add('di' + root)
         level1_bases.add('ke' + root)
         level1_bases.add('se' + root)
         
+        # Ber- / Ter- / Per-
         base_ber = get_ber_ter_root('ber', root)
         base_ter = get_ber_ter_root('ter', root)
         base_per = get_ber_ter_root('per', root)
@@ -105,22 +132,25 @@ class AdvancedCorrector:
 
         forms.update(level1_bases)
 
-        # LEVEL 2: TRANSITIVE/NOUN SUFFIXES
+        # --- LEVEL 2: TRANSITIVE/NOUN SUFFIX (-kan, -i, -an) ---
         level2_bases = set()
         suffixes_transitive = ['kan', 'i']
-        suffix_noun = ['an']
-
+        
         for base in level1_bases:
+            # 1. Tambah -an (Noun)
+            # Logika: Pembangun (Level 1) + an -> Pembangunan (Level 2)
             noun_form = base + 'an'
             level2_bases.add(noun_form)
             
+            # 2. Tambah -kan / -i (Verb Transitive)
             if base.startswith(('me', 'di', 'ter')):
                 for suf in suffixes_transitive:
                     level2_bases.add(base + suf)
 
         forms.update(level2_bases)
 
-        # LEVEL 3: ENCLITICS (SUFFIX STACKING)
+        # --- LEVEL 3: ENCLITICS (SUFFIX STACKING) ---
+        # Menambahkan -nya, -ku, -mu, -lah, -kah ke hasil Level 1 dan 2
         enclitics = ['nya', 'ku', 'mu']
         particles = ['lah', 'kah', 'pun']
 
@@ -128,7 +158,7 @@ class AdvancedCorrector:
 
         for base in candidates_for_enclitics:
             for enc in enclitics:
-                forms.add(base + enc)
+                forms.add(base + enc) # pembangunannya
             
             for part in particles:
                 forms.add(base + part)
