@@ -66,11 +66,8 @@ Content-Type: multipart/form-data
 Form field: file
 
 Supported file types:
-
 .txt
-
 .pdf
-
 .docx
 
 Description:
@@ -79,7 +76,7 @@ Mengunggah file teks, PDF, atau dokumen Word untuk diparsing dan dikoreksi.
 ### Example cURL (Raw Text)
 curl -X POST http://0.0.0.0:8000/correct-raw
 
--H "Content-Type: application/json"
+-H "Content-Type: application/json"  
 -d '{"text":"laporan dari budi santoso mengenai proyek di papua pegunungan"}'
 
 ### Example cURL (File Upload)
