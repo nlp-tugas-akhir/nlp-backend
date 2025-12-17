@@ -47,8 +47,8 @@ http://0.0.0.0:8080/docs
 ## API Endpoints
 
 ### Correct Raw Text
-Method: POST
-Path: /correct-raw
+Method: POST  
+Path: /correct-raw  
 Content-Type: application/json
 
 Request Example:
@@ -60,9 +60,9 @@ Description:
 Mengirim teks mentah (raw) dalam format JSON untuk dikoreksi oleh sistem NLP.
 
 ### Correct File Text
-Method: POST
-Path: /correct-file
-Content-Type: multipart/form-data
+Method: POST  
+Path: /correct-file  
+Content-Type: multipart/form-data  
 Form field: file
 
 Supported file types:
